@@ -4,29 +4,19 @@ import string
 import random
 from PIL import Image
 
+browser	= webdriver.PhantomJS("D:\Research\phantomjs.exe")
 conn = MySQLdb.connect (host = "localhost",user = "root", passwd = "",db = "AAMeetings")
 cursor = conn.cursor()
+cursor2 = conn.cursor()
 
 
 def rand_generator(size=10, chars=string.ascii_uppercase + string.digits):
 	return ''.join(random.choice(chars) for _ in range(size))
 
-def LoadPageAndTakeScreenShot():
-	cursor.execute("SELECT distinct meetingurl from meetinginformation limit 1")
-	data = cursor.fetchone()[0]
-	cursor.execute("SELECT * from meetinginformation where meetingurl= %s",data)
-	
-	contents=[]
-	for i in range(cursor.rowcount):
-		ms = cursor.fetchone()
-		contents.append(ms)
-		
-	if data is None:
-		return None
-	else:
-		browser	= webdriver.PhantomJS("D:\Research\phantomjs.exe")
+g_url=""
+def LoadPageAndTakeScreenShot(url):
 		elements=[]
-		browser.get(data)
+		browser.get(url)
 				
 		alldict={}
 		for row in contents:
@@ -56,7 +46,7 @@ def LoadPageAndTakeScreenShot():
 		for e in elements:
 			highlight(e)
 		
-		imagerand= 'multiMeetingScreenshot'+str(rand_generator())+'.png'
+		imagerand= 'Images/multiMeetingScreenshot'+str(rand_generator())+'.png'
 		browser.save_screenshot(imagerand)
 		return imagerand
 		
@@ -72,17 +62,32 @@ def highlight(element):
     apply_style("background: yellow; border: 5px solid red;")
     apply_style("border: 5px solid red;")
 
-retval=LoadPageAndTakeScreenShot()
-if retval is not None:
-	img=Image.open(retval)
-	img_width=int(img.size[0])
-	img_height=int(img.size[1])
-	print img_height
-	crop_y=0
-	while crop_y<img_height:
-		img2 = img.crop((0,crop_y,img_width,crop_y+400))
-		path="img"+str(rand_generator())+".png"
-		img2.save(path)
-		crop_y=crop_y+400
-		print crop_y
-
+	
+	
+	
+cursor.execute("SELECT distinct meetingurl from meetinginformation")
+for i in range(cursor.rowcount):
+	row = cursor.fetchone()
+	g_url = row[0]
+	
+	if g_url is None:
+		continue
+	else:
+		cursor2.execute("SELECT * from meetinginformation where meetingurl= %s",g_url)
+		contents=[]
+		for i in range(cursor2.rowcount):
+			ms = cursor2.fetchone()
+			contents.append(ms)
+			
+			retval=LoadPageAndTakeScreenShot(g_url)
+			if retval is not None:
+				img=Image.open(retval)
+				img_width=int(img.size[0])
+				img_height=int(img.size[1])
+				crop_y=0
+				while crop_y<img_height:
+					img2 = img.crop((0,crop_y,img_width,crop_y+400))
+					path="img"+str(rand_generator())+".png"
+					img2.save("Images/"+path)
+					crop_y=crop_y+400
+					cursor.execute("INSERT INTO urlsbyimage(url,fullorpartial,imagename) values()")
