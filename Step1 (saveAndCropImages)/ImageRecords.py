@@ -9,12 +9,15 @@ conn = MySQLdb.connect (host = "localhost",user = "root", passwd = "",db = "AAMe
 cursor = conn.cursor()
 cursor2 = conn.cursor()
 
+cursor.execute("DELETE FROM urlsbyimage")
+conn.commit()
+
 
 def rand_generator(size=10, chars=string.ascii_uppercase + string.digits):
 	return ''.join(random.choice(chars) for _ in range(size))
 
 g_url=""
-def LoadPageAndTakeScreenShot(url):
+def LoadPageAndTakeScreenShot(url,contents):
 		elements=[]
 		browser.get(url)
 				
@@ -44,11 +47,13 @@ def LoadPageAndTakeScreenShot(url):
 					
 			#print browser.title
 		for e in elements:
-			highlight(e)
+			if e is not None:
+				highlight(e)
 		
-		imagerand= 'Images/multiMeetingScreenshot'+str(rand_generator())+'.png'
-		browser.save_screenshot(imagerand)
-		return imagerand
+		imagerand= 'multiMeetingScreenshot'+str(rand_generator())+'.png'
+		browser.save_screenshot("../Step2 (crowd interface)/crowdImage/app/static/images/"+imagerand)
+		cursor2.execute("""INSERT INTO urlsbyimage(url,fullorpartial,imagename) values(%s,%s,%s)""",(url,1,imagerand))
+		return "../Step2 (crowd interface)/crowdImage/app/static/images/"+imagerand
 		
 		
 def highlight(element):
@@ -79,15 +84,18 @@ for i in range(cursor.rowcount):
 			ms = cursor2.fetchone()
 			contents.append(ms)
 			
-			retval=LoadPageAndTakeScreenShot(g_url)
-			if retval is not None:
-				img=Image.open(retval)
-				img_width=int(img.size[0])
-				img_height=int(img.size[1])
-				crop_y=0
-				while crop_y<img_height:
-					img2 = img.crop((0,crop_y,img_width,crop_y+400))
-					path="img"+str(rand_generator())+".png"
-					img2.save("Images/"+path)
-					crop_y=crop_y+400
-					cursor.execute("INSERT INTO urlsbyimage(url,fullorpartial,imagename) values()")
+		retval=LoadPageAndTakeScreenShot(g_url,contents)
+		if retval is not None:
+			img=Image.open(retval)
+			img_width=int(img.size[0])
+			img_height=int(img.size[1])
+			crop_y=0
+			while crop_y<img_height:
+				img2 = img.crop((0,crop_y,img_width,crop_y+400))
+				path="img"+str(rand_generator())+".png"
+				img2.save("../Step2 (crowd interface)/crowdImage/app/static/images/"+path)
+				crop_y=crop_y+400
+				cursor2.execute("""INSERT INTO urlsbyimage(url,fullorpartial,imagename) values(%s,%s,%s)""",(g_url,0,path))
+				
+
+conn.commit()
